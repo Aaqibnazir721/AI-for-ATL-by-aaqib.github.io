@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ATL AI Mentor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#0f172a;
+  color:#e5e7eb;
+}
+
+/* HEADER */
+.header {
+  text-align:center;
+  padding:40px 20px 20px;
+}
+.header h1 {
+  font-size:36px;
+  color:#60a5fa;
+  text-shadow:0 0 20px rgba(96,165,250,0.7);
+  margin-bottom:8px;
+  animation:fadeIn 1s ease-in-out;
+}
+.header p {
+  color:#9ca3af;
+  font-size:16px;
+}
+@keyframes fadeIn {
+  from { opacity:0; transform: translateY(-20px); }
+  to { opacity:1; transform: translateY(0);}
+}
+
+/* SEARCH BAR AT TOP */
+.search-box {
+  position: sticky;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 700px;
+  background:#020617;
+  padding:12px 15px;
+  border-radius:12px;
+  box-shadow:0 6px 20px rgba(0,0,0,0.6);
+  display:flex;
+  gap:10px;
+  z-index:100;
+  margin-bottom:20px;
+}
+.search-box textarea {
+  flex:1;
+  background:#020617;
+  border:1px solid #1e293b;
+  border-radius:10px;
+  padding:10px;
+  color:#e5e7eb;
+  font-size:14px;
+  resize:none;
+  height:45px;
+}
+.search-box button {
+  background:#2563eb;
+  border:none;
+  color:white;
+  padding:10px 18px;
+  border-radius:10px;
+  cursor:pointer;
+  font-size:14px;
+}
+.search-box button:hover { background:#1d4ed8; }
+
+/* CONTAINER */
+.container {
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+/* CHAT HISTORY */
+.message {
+  margin-bottom:25px;
+  padding:20px;
+  background:#1e293b;
+  border-radius:14px;
+  border:1px solid #334155;
+  line-height:1.6;
+}
+
+/* LOADING */
+.loading {
+  font-style:italic;
+  color:#9ca3af;
+  margin-bottom:15px;
+}
+
+/* FOOTER */
+.footer {
+  text-align:center;
+  font-size:13px;
+  color:#6b7280;
+  margin:40px 0;
+}
+
+/* HEADINGS INSIDE MESSAGES */
+.message h2 {
+  color:#93c5fd;
+  margin-bottom:12px;
+}
+</style>
+</head>
+
+<body> <div id="top-bar">
+  <button id="subscribeBtn" onclick="subscribe()">Subscribe</button>
+</div>
+
+<div class="header">
+  <h1>ATL AI Mentor</h1>
+  <p>Interactive guidance for innovation projects</p>
+</div>
+
+<div class="search-box">
+  <textarea id="query" placeholder="Ask about any ATL project..." onkeydown="handleEnter(event)"></textarea>
+  <button onclick="askMentor()">Ask Mentor</button>
+</div>
+
+<div class="container" id="output"></div>
+
+<div class="footer">
+  Made by Aaqib • ATL BHSS Bomai • Prototype version • AI-powered dynamic mentoring coming soon
+</div>
+<script>
+let historyHTML = "";
+
+// Enter key
+function handleEnter(e){
+  if(e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    askMentor();
+  }
+}
+
+const FREE_LIMIT = 3;
+
+// MAIN FUNCTION
+async function askMentor(){
+  const queryBox = document.getElementById("query");
+  const query = queryBox.value.trim().toLowerCase();
+  if(!query) return;
+
+  const loadingMsg = `<div class="message loading">Mentor is analyzing your question...</div>`;
+  historyHTML += loadingMsg;
+  document.getElementById("output").innerHTML = historyHTML;
+
+  setTimeout(async () => {
+    let responseHTML = "";
+
+    // OFFLINE PROJECTS (FREE)
+    if(query.includes("irrigation")){
+      responseHTML = fullProjectHTML(
+        "Smart Irrigation System",
+        "Water wastage due to manual irrigation.",
+        "Automatic watering using soil moisture.",
+        ["Arduino","Soil Sensor","Relay","Pump"],
+        "Sensor checks moisture and controls pump.",
+        ["Farming","Gardens"],
+        ["Saves water","Low cost"],
+        ["IoT","Solar power"],
+        "Arduino code here"
+      );
+    }
+
+    else if(query.includes("bird")){
+      responseHTML = fullProjectHTML(
+        "Smart Bird Safety Alert System",
+        "Bird deaths near power lines.",
+        "Detect birds and alert.",
+        ["Arduino","Ultrasonic","Buzzer"],
+        "Sensor detects bird and alerts.",
+        ["Power lines"],
+        ["Eco-friendly"],
+        ["AI camera"],
+        "Arduino code here"
+      );
+    }
+
+    // ONLINE AI (LIMITED)
+    else {
+      if(!canUseOnlineAI()){
+        responseHTML = `
+          <h2>Limit Reached</h2>
+          <p>Subscribe to use full AI Mentor.</p>
+        `;
+      } else {
+        try{
+          const res = await fetch("http://localhost:3000/ask",{
+            method:"POST",
+            headers:{ "Content-Type":"application/json" },
+            body:JSON.stringify({ question: query })
+          });
+          const data = await res.json();
+          responseHTML = `<h2>AI Mentor</h2><p>${data.answer}</p>`;
+        } catch {
+          responseHTML = `<p>Mentor temporarily unavailable.</p>`;
+        }
+      }
+    }
+
+    historyHTML = historyHTML.replace(loadingMsg,"") +
+      `<div class="message">${responseHTML}</div>`;
+    document.getElementById("output").innerHTML = historyHTML;
+    queryBox.value = "";
+
+  }, 500);
+}
+
+// TEMPLATE
+function fullProjectHTML(title, problem, objective, components, working, apps, adv, future, code){
+  return `
+    <h2>${title}</h2>
+    <p><b>Problem:</b> ${problem}</p>
+    <p><b>Objective:</b> ${objective}</p>
+    <p><b>Components:</b> ${components.join(", ")}</p>
+    <p><b>Working:</b> ${working}</p>
+    <p><b>Applications:</b> ${apps.join(", ")}</p>
+    <p><b>Advantages:</b> ${adv.join(", ")}</p>
+    <p><b>Future:</b> ${future.join(", ")}</p>
+    <pre>${code}</pre>
+  `;
+}
+
+// SUBSCRIPTION LOGIC
+function subscribe(){
+  localStorage.setItem("subscribed","true");
+  alert("Subscription activated (demo)");
+  updateSubscribeUI();
+}
+
+function updateSubscribeUI(){
+  const btn = document.getElementById("subscribeBtn");
+  if(!btn) return;
+
+  if(localStorage.getItem("subscribed")==="true"){
+    btn.innerText = "Subscribed";
+    btn.disabled = true;
+  }
+}
+
+function canUseOnlineAI(){
+  if(localStorage.getItem("subscribed")==="true") return true;
+
+  let count = Number(localStorage.getItem("freeCount") || 0);
+  if(count >= FREE_LIMIT) return false;
+
+  localStorage.setItem("freeCount", count + 1);
+  return true;
+}
+
+window.onload = updateSubscribeUI;
+</script>
